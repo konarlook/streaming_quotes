@@ -12,3 +12,15 @@ pub enum ParseError {
         source: Box<dyn std::error::Error + Send + Sync>,
     },
 }
+
+#[derive(Debug, Error)]
+pub enum CommandError {
+    #[error("command `{0}` not found")]
+    UnknownCommand(String),
+    #[error(transparent)]
+    InvalidUdpAddr(#[from] std::net::AddrParseError),
+    #[error("invalid STREAM args. Use STREAM <udp_addr> <ticker...>")]
+    InvalidStreamArgs,
+    #[error("empty ticker list")]
+    EmptyTicker,
+}
