@@ -1,5 +1,30 @@
+use clap::builder::Str;
+use std::collections::HashSet;
 use std::io::{BufRead, BufReader, Read};
 use thiserror::Error;
+
+pub struct Tickers {
+    tickers: HashSet<String>,
+}
+
+impl Tickers {
+    pub fn new(tick: Vec<String>) -> Self {
+        Self {
+            tickers: HashSet::from_iter(tick),
+        }
+    }
+}
+
+impl Tickers {
+    pub fn include(&self, ticker: Vec<String>) -> bool {
+        for tick in ticker {
+            if !self.tickers.contains(tick.as_str()) {
+                return false;
+            }
+        }
+        true
+    }
+}
 
 #[derive(Debug, Error)]
 pub enum ReadTickerError {
@@ -7,9 +32,11 @@ pub enum ReadTickerError {
     File(#[from] std::io::Error),
     #[error("empty tickers file")]
     EmptyFile,
+    #[error("file not found")]
+    FileNotFound,
 }
 
-pub fn read_from<R: BufRead>(reader: &mut R) -> Result<Vec<String>, ReadTickerError> {
+pub fn read_tickers_from<R: BufRead>(reader: &mut R) -> Result<Vec<String>, ReadTickerError> {
     let mut tickers: Vec<String> = Vec::new();
 
     for line in reader.lines() {
@@ -58,7 +85,7 @@ mod tests {
         let data = raw;
 
         let mut cursor = Cursor::new(data);
-        let tickers = read_from(&mut cursor);
+        let tickers = read_tickers_from(&mut cursor);
         assert!(tickers.is_ok());
         assert_eq!(tickers.unwrap(), vec!["APL", "GPN", "VLU"])
     }
@@ -68,7 +95,7 @@ mod tests {
         let data = "";
 
         let mut cursor = Cursor::new(data);
-        let tickers = read_from(&mut cursor);
+        let tickers = read_tickers_from(&mut cursor);
         assert!(tickers.is_err());
         assert!(matches!(tickers.err(), Some(ReadTickerError::EmptyFile)))
     }
@@ -77,7 +104,7 @@ mod tests {
     fn test_read_error() {
         let fake_reader = FailingReader;
         let mut buf = BufReader::new(fake_reader);
-        let result = read_from(&mut buf);
+        let result = read_tickers_from(&mut buf);
         assert!(result.is_err());
         assert!(matches!(result.err(), Some(ReadTickerError::File(_))));
     }

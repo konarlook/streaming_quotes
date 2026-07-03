@@ -23,4 +23,6 @@ pub enum CommandError {
     InvalidStreamArgs,
     #[error("empty ticker list")]
     EmptyTicker,
+    #[error("ticker {0} not found in database")]
+    UnknownTicker(String),
 }

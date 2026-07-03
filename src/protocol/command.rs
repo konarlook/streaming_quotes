@@ -62,8 +62,8 @@ pub enum Response {
 impl std::fmt::Display for Response {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Response::OK => write!(f, "OK"),
-            Response::ERR(e) => write!(f, "ERR: {}", e),
+            Response::OK => write!(f, "OK\n"),
+            Response::ERR(e) => write!(f, "ERR: {}\n", e),
         }
     }
 }
