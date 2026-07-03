@@ -9,11 +9,10 @@ pub enum ReadTickerError {
     EmptyFile,
 }
 
-pub fn read_from<R: Read>(reader: &mut R) -> Result<Vec<String>, ReadTickerError> {
-    let buf = BufReader::new(reader);
+pub fn read_from<R: BufRead>(reader: &mut R) -> Result<Vec<String>, ReadTickerError> {
     let mut tickers: Vec<String> = Vec::new();
 
-    for line in buf.lines() {
+    for line in reader.lines() {
         let line = line?;
         let line: Vec<String> = line
             .split(",")
@@ -76,8 +75,9 @@ mod tests {
 
     #[rstest]
     fn test_read_error() {
-        let mut fake_reader = FailingReader;
-        let result = read_from(&mut fake_reader);
+        let fake_reader = FailingReader;
+        let mut buf = BufReader::new(fake_reader);
+        let result = read_from(&mut buf);
         assert!(result.is_err());
         assert!(matches!(result.err(), Some(ReadTickerError::File(_))));
     }
