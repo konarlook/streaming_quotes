@@ -16,13 +16,17 @@ impl Tickers {
 }
 
 impl Tickers {
-    pub fn include(&self, ticker: Vec<String>) -> bool {
+    pub fn find_unknown(&self, ticker: Vec<String>) -> Option<Vec<String>> {
+        let mut not_included = Vec::new();
         for tick in ticker {
             if !self.tickers.contains(tick.as_str()) {
-                return false;
+                not_included.push(tick);
             }
         }
-        true
+        if not_included.is_empty() {
+            return None;
+        }
+        Some(not_included)
     }
 }
 
