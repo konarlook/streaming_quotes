@@ -5,9 +5,14 @@ use std::net::{SocketAddr, TcpListener};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
+use std::time::Duration;
 use streaming_quotes::net::handler::handle_command;
-use streaming_quotes::tickers;
+use streaming_quotes::protocol::quote::StockQuote;
+use streaming_quotes::sender::QuoteSender;
 use streaming_quotes::tickers::ReadTickerError;
+use streaming_quotes::{Registry, tickers};
+
+const TICKERS_UPDATE_TIMEOUT: Duration = Duration::from_secs(1);
 
 fn main() {
     if let Err(err) = run() {
@@ -23,6 +28,8 @@ struct Args {
     ticker_file: PathBuf,
     #[arg(long, default_value = "127.0.0.1:7878")]
     server_addr: SocketAddr,
+    #[arg(long, default_value = "127.0.0.1:9000")]
+    udp_addr: SocketAddr,
 }
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
@@ -38,15 +45,41 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     let a_tickers = Arc::new(ticks);
 
-    let listener = TcpListener::bind(args.server_addr)?;
-    println!("Server listening on {}", args.server_addr);
+    let registry = Arc::new(Registry::new());
 
-    for stream in listener.incoming() {
+    let tcp_listener = TcpListener::bind(args.server_addr)?;
+    let sender = Arc::new(QuoteSender::new(args.udp_addr)?);
+
+    println!(
+        "Server listening on {} (tcp) and {} (udp)",
+        args.server_addr, args.udp_addr
+    );
+
+    {
+        let tickers = Arc::clone(&a_tickers);
+        let registry = Arc::clone(&registry);
+        let sender = Arc::clone(&sender);
+        thread::spawn(move || {
+            loop {
+                for ticker in &tickers.tickers {
+                    let tick = StockQuote::random(ticker);
+                    registry.route(tick, &sender);
+                }
+                thread::sleep(TICKERS_UPDATE_TIMEOUT);
+            }
+        });
+    }
+
+    for stream in tcp_listener.incoming() {
         match stream {
             Ok(stream) => {
                 let ticks = Arc::clone(&a_tickers);
+                let registry = Arc::clone(&registry);
+
                 thread::spawn(move || {
-                    handle_command(stream, ticks).unwrap_err();
+                    if let Err(e) = handle_command(stream, ticks, registry) {
+                        eprintln!("Command error: {:?}", e);
+                    }
                 });
             }
             Err(e) => {

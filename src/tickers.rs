@@ -1,26 +1,29 @@
-use clap::builder::Str;
 use std::collections::HashSet;
-use std::io::{BufRead, BufReader, Read};
+use std::io::BufRead;
 use thiserror::Error;
 
+#[derive(Debug, Error)]
+pub enum TickerError {
+    #[error("unknown ticker {0}")]
+    UnknownName(String),
+}
+
 pub struct Tickers {
-    tickers: HashSet<String>,
+    pub tickers: HashSet<String>,
 }
 
 impl Tickers {
-    pub fn new(tick: Vec<String>) -> Self {
+    pub fn new(ticks: Vec<String>) -> Self {
         Self {
-            tickers: HashSet::from_iter(tick),
+            tickers: HashSet::from_iter(ticks),
         }
     }
-}
 
-impl Tickers {
-    pub fn find_unknown(&self, ticker: Vec<String>) -> Option<Vec<String>> {
+    pub fn find_unknown(&self, ticker: &Vec<String>) -> Option<Vec<String>> {
         let mut not_included = Vec::new();
         for tick in ticker {
-            if !self.tickers.contains(tick.as_str()) {
-                not_included.push(tick);
+            if !self.tickers.contains(tick) {
+                not_included.push(tick.clone());
             }
         }
         if not_included.is_empty() {
@@ -66,6 +69,7 @@ mod tests {
     use super::*;
     use rstest::rstest;
     use std::io::Cursor;
+    use std::io::{BufReader, Read};
 
     struct FailingReader;
 

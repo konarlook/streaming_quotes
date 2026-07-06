@@ -1,6 +1,7 @@
 use crate::protocol::errors::ParseError;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StockQuote {
@@ -11,9 +12,32 @@ pub struct StockQuote {
 }
 
 impl StockQuote {
+    pub fn new(ticker: String, price: f64, volume: u32) -> Self {
+        Self {
+            ticker,
+            price,
+            volume,
+            timestamp_ms: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("duration since error")
+                .as_secs(),
+        }
+    }
+
+    pub fn random(name: &str) -> Self {
+        use rand::RngExt;
+        let mut rng = rand::rng();
+
+        Self::new(
+            name.to_string(),
+            rng.random_range(0.0..100.0),
+            rng.random_range(0..100),
+        )
+    }
+
     pub fn to_wire_line(&self) -> String {
         format!(
-            "{}|{}|{}|{}",
+            "{}|{}|{}|{}\n",
             self.ticker, self.price, self.volume, self.timestamp_ms
         )
     }

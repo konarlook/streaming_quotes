@@ -27,7 +27,7 @@ impl std::str::FromStr for RequestCommand {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let cmd: Vec<&str> = s.split_whitespace().collect();
-        match cmd.get(0) {
+        match cmd.first() {
             Some(&"STREAM") => {
                 if cmd.len() != 3 {
                     return Err(CommandError::InvalidStreamArgs);
@@ -55,15 +55,18 @@ impl std::str::FromStr for RequestCommand {
 
 #[derive(Debug)]
 pub enum Response {
-    OK,
+    OK {
+        addr: SocketAddr,
+        ticks: Vec<String>,
+    },
     ERR(CommandError),
 }
 
 impl std::fmt::Display for Response {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Response::OK => write!(f, "OK\n"),
-            Response::ERR(e) => write!(f, "ERR: {}\n", e),
+            Response::OK { .. } => writeln!(f, "OK"),
+            Response::ERR(e) => writeln!(f, "ERR: {}", e),
         }
     }
 }
