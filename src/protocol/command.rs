@@ -121,7 +121,7 @@ mod tests {
     }
 
     #[rstest]
-    #[case("STREAM 127.0.0.1:9999 APL,TTM")]
+    #[case("STREAM 127.0.0.1:9999 APL,TTM\n")]
     fn parse_client_sync(#[case] command: &str) {
         let got = RequestCommand::from_str(command);
         assert_eq!(command, got.unwrap().to_string())
