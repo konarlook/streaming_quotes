@@ -16,7 +16,7 @@ impl std::fmt::Display for RequestCommand {
                 addr,
                 tickers: ticker,
             } => {
-                write!(f, "STREAM {} {}", addr, ticker.join(","))
+                writeln!(f, "STREAM {} {}", addr, ticker.join(","))
             }
         }
     }

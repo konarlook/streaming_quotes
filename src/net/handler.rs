@@ -3,7 +3,7 @@ use crate::protocol::command::{RequestCommand, Response};
 use crate::protocol::errors::CommandError;
 use crate::tickers::Tickers;
 use std::io::{BufRead, BufReader, Write};
-use std::net::TcpStream;
+use std::net::{SocketAddr, TcpStream};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -48,4 +48,36 @@ fn process_line(raw: &str, ticker: &Tickers) -> Response {
         },
         Err(e) => Response::ERR(e),
     }
+}
+
+pub fn handle_client(
+    stream: TcpStream,
+    addr: SocketAddr,
+    tickers: Vec<String>,
+) -> std::io::Result<()> {
+    let mut writer = stream.try_clone()?;
+    let mut reader = BufReader::new(stream);
+
+    let command = RequestCommand::Stream { addr, tickers };
+    writer.write_all(command.to_string().as_bytes())?;
+    writer.flush()?;
+
+    let mut line = String::new();
+    match reader.read_line(&mut line) {
+        Ok(0) => return Ok(()),
+        Ok(_) => {
+            let input = line.trim();
+            println!("{:?}", line);
+            if input.is_empty() {
+                writer.flush()?;
+            }
+            if input.eq_ignore_ascii_case("OK") {
+                println!("Client successfully registered!");
+                return Ok(());
+            }
+        }
+        Err(e) => return Err(e),
+    }
+
+    Ok(())
 }

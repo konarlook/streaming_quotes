@@ -1,5 +1,6 @@
 use crate::protocol::quote::StockQuote;
 use std::net::{SocketAddr, UdpSocket};
+use std::thread;
 
 pub struct QuoteReceiver {
     socket: UdpSocket,
@@ -31,5 +32,13 @@ impl QuoteReceiver {
                 }
             }
         }
+    }
+
+    pub fn start(self) -> thread::JoinHandle<()> {
+        thread::spawn(move || {
+            if let Err(e) = self.recv_loop() {
+                eprintln!("Error receiving from socket: {}", e);
+            }
+        })
     }
 }

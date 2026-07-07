@@ -8,6 +8,7 @@ pub enum TickerError {
     UnknownName(String),
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct Tickers {
     pub tickers: HashSet<String>,
 }
