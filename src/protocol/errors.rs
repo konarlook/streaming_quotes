@@ -25,4 +25,6 @@ pub enum CommandError {
     EmptyTicker,
     #[error("ticker {0} not found in database")]
     UnknownTicker(String),
+    #[error("invalid ping address")]
+    InvalidPingAddress,
 }

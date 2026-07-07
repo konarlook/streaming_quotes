@@ -7,6 +7,7 @@ pub enum RequestCommand {
         addr: SocketAddr,
         tickers: Vec<String>,
     },
+    Ping(SocketAddr),
 }
 
 impl std::fmt::Display for RequestCommand {
@@ -18,6 +19,7 @@ impl std::fmt::Display for RequestCommand {
             } => {
                 writeln!(f, "STREAM {} {}", addr, ticker.join(","))
             }
+            RequestCommand::Ping(addr) => writeln!(f, "PING {}", addr),
         }
     }
 }
@@ -45,6 +47,12 @@ impl std::str::FromStr for RequestCommand {
                     tickers,
                 })
             }
+            Some(&"PING") => {
+                if cmd.len() != 2 {
+                    return Err(CommandError::InvalidPingAddress);
+                }
+                Ok(RequestCommand::Ping(SocketAddr::from_str(cmd[1])?))
+            }
             Some(command) => Err(CommandError::UnknownCommand(command.to_string())),
             None => Err(CommandError::UnknownCommand(
                 "No command specified".to_string(),
@@ -60,6 +68,7 @@ pub enum Response {
         ticks: Vec<String>,
     },
     ERR(CommandError),
+    PONG(SocketAddr),
 }
 
 impl std::fmt::Display for Response {
@@ -67,6 +76,7 @@ impl std::fmt::Display for Response {
         match self {
             Response::OK { .. } => writeln!(f, "OK"),
             Response::ERR(e) => writeln!(f, "ERR: {}", e),
+            Response::PONG(_) => writeln!(f, "PONG"),
         }
     }
 }

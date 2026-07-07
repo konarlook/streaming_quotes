@@ -13,6 +13,7 @@ use streaming_quotes::tickers::ReadTickerError;
 use streaming_quotes::{Registry, tickers};
 
 const TICKERS_UPDATE_TIMEOUT: Duration = Duration::from_secs(1);
+const CLEAR_TIMEOUT: Duration = Duration::from_secs(5);
 
 fn main() {
     if let Err(err) = run() {
@@ -66,6 +67,16 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                     registry.route(tick, &sender);
                 }
                 thread::sleep(TICKERS_UPDATE_TIMEOUT);
+            }
+        });
+    }
+
+    {
+        let registry = Arc::clone(&registry);
+        thread::spawn(move || {
+            loop {
+                registry.clear_stale();
+                thread::sleep(CLEAR_TIMEOUT);
             }
         });
     }

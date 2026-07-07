@@ -42,6 +42,13 @@ impl Registry {
         );
     }
 
+    pub fn update_ping(&self, addr: SocketAddr) {
+        let mut mux = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(sub) = mux.get_mut(&addr) {
+            sub.last_ping = Instant::now();
+        }
+    }
+
     pub fn unregister(&self, addr: SocketAddr) {
         let mut mux = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         mux.remove(&addr);

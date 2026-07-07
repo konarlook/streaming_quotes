@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::thread;
 use std::time::Duration;
 use streaming_quotes::net::handler::handle_client;
+use streaming_quotes::protocol::command::RequestCommand;
 use streaming_quotes::receiver::QuoteReceiver;
 use streaming_quotes::tickers;
 use streaming_quotes::tickers::ReadTickerError;
@@ -40,9 +41,25 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         return Err(ReadTickerError::FileNotFound)?;
     }
 
-    let tcp_listener = TcpStream::connect(args.tcp_addr)?;
-    if let Err(e) = handle_client(tcp_listener, args.udp_addr, ticks) {
-        return Err(e)?;
+    let mut tcp_listener = TcpStream::connect(args.tcp_addr)?;
+    {
+        thread::spawn(move || {
+            let command = RequestCommand::Stream {
+                addr: args.udp_addr,
+                tickers: ticks,
+            };
+            if let Err(e) = handle_client(&mut tcp_listener, command) {
+                eprintln!("STREAM command failed: {}", e);
+            }
+            loop {
+                let command = RequestCommand::Ping(args.udp_addr);
+                if let Err(e) = handle_client(&mut tcp_listener, command) {
+                    eprintln!("ping failed: {}", e);
+                    break;
+                }
+                thread::sleep(Duration::from_secs(1));
+            }
+        });
     }
 
     let receiver = QuoteReceiver::new(args.udp_addr)?;
